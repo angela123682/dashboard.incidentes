@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Incidentes</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table, th, td { border: 1px solid black; border-collapse: collapse; }
+    th, td { padding: 8px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard de Incidentes</h1>
+
+  <form id="incidentForm">
+    <input type="text" placeholder="Móvil" name="movil">
+    <input type="date" name="fecha">
+    <input type="time" name="hora">
+    <input type="text" placeholder="Lugar" name="lugar">
+    <input type="text" placeholder="Tipo" name="tipo">
+    <input type="text" placeholder="Descripción" name="descripcion">
+    <input type="text" placeholder="Encargado" name="encargado">
+    <select name="estado">
+      <option value="">Estado</option>
+      <option value="abierto">Abierto</option>
+      <option value="finalizado">Finalizado</option>
+    </select>
+    <button type="submit">Añadir Incidente</button>
+  </form>
+
+  <input type="text" id="searchInput" placeholder="Buscar por lugar o tipo...">
+  <button onclick="toggleTable()">Mostrar/Ocultar Tabla</button>
+  <button onclick="exportData()">Exportar Datos</button>
+
+  <table id="incidentTable">
+    <thead>
+      <tr>
+        <th>Móvil</th><th>Fecha</th><th>Hora</th><th>Lugar</th><th>Tipo</th><th>Descripción</th><th>Encargado</th><th>Estado</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Gráficos</h2>
+  <canvas id="chart1"></canvas>
+  <canvas id="chart2"></canvas>
+  <canvas id="chart3"></canvas>
+  <canvas id="chart4"></canvas>
+  <canvas id="chart5"></canvas>
+
+  <script>
+    const form = document.getElementById('incidentForm');
+    const tableBody = document.querySelector('#incidentTable tbody');
+    const searchInput = document.getElementById('searchInput');
+
+    let incidents = JSON.parse(localStorage.getItem('incidents')) || [{"movil": "123", "fecha": "2025-05-20", "hora": "14:00", "lugar": "Zona Norte", "tipo": "Accidente", "descripcion": "Choque entre dos vehículos", "encargado": "Juan Pérez", "estado": "abierto"}, {"movil": "456", "fecha": "2025-05-21", "hora": "10:30", "lugar": "Centro", "tipo": "Incendio", "descripcion": "Fuego en edificio comercial", "encargado": "Ana Gómez", "estado": "finalizado"}];
+
+    function renderTable() {
+      tableBody.innerHTML = '';
+      incidents.forEach((incident, index) => {
+        const row = `<tr>
+          <td>${incident.movil || ''}</td>
+          <td>${incident.fecha || ''}</td>
+          <td>${incident.hora || ''}</td>
+          <td>${incident.lugar || ''}</td>
+          <td>${incident.tipo || ''}</td>
+          <td>${incident.descripcion || ''}</td>
+          <td>${incident.encargado || ''}</td>
+          <td>${incident.estado || ''}</td>
+          <td>
+            <button onclick="editIncident(${index})">Editar</button>
+            <button onclick="deleteIncident(${index})">Eliminar</button>
+          </td>
+        </tr>`;
+        tableBody.insertAdjacentHTML('beforeend', row);
+      });
+      updateCharts();
+    }
+
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form));
+      incidents.push(data);
+      localStorage.setItem('incidents', JSON.stringify(incidents));
+      form.reset();
+      renderTable();
+    }
+
+    function deleteIncident(index) {
+      incidents.splice(index, 1);
+      localStorage.setItem('incidents', JSON.stringify(incidents));
+      renderTable();
+    }
+
+    function editIncident(index) {
+      const data = incidents[index];
+      Object.keys(data).forEach(key => form.elements[key].value = data[key]);
+      deleteIncident(index);
+    }
+
+    function toggleTable() {
+      const table = document.getElementById('incidentTable');
+      table.classList.toggle('hidden');
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(incidents));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "incidentes.json");
+      dlAnchor.click();
+    }
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = incidents.filter(i =>
+        (i.lugar && i.lugar.toLowerCase().includes(query)) ||
+        (i.tipo && i.tipo.toLowerCase().includes(query))
+      );
+      tableBody.innerHTML = '';
+      filtered.forEach((incident, index) => {
+        const row = `<tr>
+          <td>${incident.movil || ''}</td>
+          <td>${incident.fecha || ''}</td>
+          <td>${incident.hora || ''}</td>
+          <td>${incident.lugar || ''}</td>
+          <td>${incident.tipo || ''}</td>
+          <td>${incident.descripcion || ''}</td>
+          <td>${incident.encargado || ''}</td>
+          <td>${incident.estado || ''}</td>
+          <td>
+            <button onclick="editIncident(${index})">Editar</button>
+            <button onclick="deleteIncident(${index})">Eliminar</button>
+          </td>
+        </tr>`;
+        tableBody.insertAdjacentHTML('beforeend', row);
+      });
+    });
+
+    function updateCharts() {
+      const tipos = {};
+      const estados = { abierto: 0, finalizado: 0 };
+      incidents.forEach(i => {
+        if (i.tipo) tipos[i.tipo] = (tipos[i.tipo] || 0) + 1;
+        if (i.estado) estados[i.estado] = (estados[i.estado] || 0) + 1;
+      });
+
+      const ctx1 = document.getElementById('chart1').getContext('2d');
+      new Chart(ctx1, {
+        type: 'bar',
+        data: { labels: Object.keys(tipos), datasets: [{ label: 'Tipos de Incidente', data: Object.values(tipos), backgroundColor: 'orange' }] },
+      });
+
+      const ctx2 = document.getElementById('chart2').getContext('2d');
+      new Chart(ctx2, {
+        type: 'pie',
+        data: { labels: Object.keys(estados), datasets: [{ data: Object.values(estados), backgroundColor: ['green', 'red'] }] },
+      });
+
+      const ctx3 = document.getElementById('chart3').getContext('2d');
+      new Chart(ctx3, {
+        type: 'line',
+        data: { labels: incidents.map(i => i.fecha), datasets: [{ label: 'Incidentes por Fecha', data: incidents.map((_, i) => i + 1), borderColor: 'blue' }] },
+      });
+
+      const ctx4 = document.getElementById('chart4').getContext('2d');
+      new Chart(ctx4, {
+        type: 'doughnut',
+        data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['yellow', 'cyan', 'pink', 'purple'] }] },
+      });
+
+      const ctx5 = document.getElementById('chart5').getContext('2d');
+      new Chart(ctx5, {
+        type: 'polarArea',
+        data: { labels: Object.keys(estados), datasets: [{ data: Object.values(estados), backgroundColor: ['blue', 'gray'] }] },
+      });
+    }
+
+    renderTable();
+  </script>
+</body>
+</html>
