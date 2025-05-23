@@ -1,0 +1,187 @@
+ <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Incidentes</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table, th, td { border: 1px solid black; border-collapse: collapse; }
+    th, td { padding: 8px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard de Incidentes</h1>
+
+  <form id="formulario">
+    <label>Móvil: <input type="text" id="movil"></label>
+    <label>Fecha: <input type="date" id="fecha"></label>
+    <label>Hora: <input type="time" id="hora"></label>
+    <label>Lugar: <input type="text" id="lugar"></label>
+    <label>Tipo: <input type="text" id="tipo"></label>
+    <label>Descripción: <input type="text" id="descripcion"></label>
+    <label>Encargado: <input type="text" id="encargado"></label>
+    <label>Solicitante: <input type="text" id="solicitante"></label>
+    <label>Estado:
+      <select id="estado">
+        <option value="abierto">Abierto</option>
+        <option value="finalizado">Finalizado</option>
+      </select>
+    </label>
+    <button type="submit">Guardar Incidente</button>
+  </form>
+
+  <br>
+  <input type="text" id="buscar" placeholder="Buscar incidente...">
+  <button onclick="toggleTabla()">Mostrar/Ocultar Tabla</button>
+  <button onclick="descargarDatos()">Descargar Datos</button>
+
+  <table id="tabla"></table>
+
+  <canvas id="grafico1" width="400" height="200"></canvas>
+  <canvas id="grafico2" width="400" height="200"></canvas>
+  <canvas id="grafico3" width="400" height="200"></canvas>
+  <canvas id="grafico4" width="400" height="200"></canvas>
+  <canvas id="grafico5" width="400" height="200"></canvas>
+
+  <script>
+    let incidents = JSON.parse(localStorage.getItem('incidents')) || [{"movil": "123", "fecha": "2025-05-20", "hora": "14:00", "lugar": "Zona Norte", "tipo": "Accidente", "descripcion": "Choque entre dos vehículos", "encargado": "Juan Pérez", "solicitante": "Carlos", "estado": "abierto"}, {"movil": "456", "fecha": "2025-05-21", "hora": "10:30", "lugar": "Centro", "tipo": "Incendio", "descripcion": "Fuego en edificio comercial", "encargado": "Ana Gómez", "solicitante": "María", "estado": "finalizado"}];
+    let editingIndex = null;
+
+    document.getElementById('formulario').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const incidente = {
+        movil: document.getElementById('movil').value,
+        fecha: document.getElementById('fecha').value,
+        hora: document.getElementById('hora').value,
+        lugar: document.getElementById('lugar').value,
+        tipo: document.getElementById('tipo').value,
+        descripcion: document.getElementById('descripcion').value,
+        encargado: document.getElementById('encargado').value,
+        solicitante: document.getElementById('solicitante').value,
+        estado: document.getElementById('estado').value
+      };
+      if (editingIndex !== null) {
+        incidents[editingIndex] = incidente;
+        editingIndex = null;
+      } else {
+        incidents.push(incidente);
+      }
+      localStorage.setItem('incidents', JSON.stringify(incidents));
+      this.reset();
+      mostrarTabla();
+      renderGraficos();
+    });
+
+    document.getElementById('buscar').addEventListener('input', function() {
+      const query = this.value.toLowerCase();
+      const filtrados = incidents.filter(i => JSON.stringify(i).toLowerCase().includes(query));
+      mostrarTabla(filtrados);
+    });
+
+    function mostrarTabla(data = incidents) {
+      const tabla = document.getElementById('tabla');
+      tabla.innerHTML = `<thead><tr>
+        <th>Móvil</th><th>Fecha</th><th>Hora</th><th>Lugar</th><th>Tipo</th>
+        <th>Descripción</th><th>Encargado</th><th>Solicitante</th><th>Estado</th><th>Acciones</th>
+      </tr></thead>`;
+      data.forEach((inc, i) => {
+        tabla.innerHTML += `<tr>
+          <td>${inc.movil}</td><td>${inc.fecha}</td><td>${inc.hora}</td><td>${inc.lugar}</td>
+          <td>${inc.tipo}</td><td>${inc.descripcion}</td><td>${inc.encargado}</td><td>${inc.solicitante || ''}</td>
+          <td>${inc.estado}</td>
+          <td>
+            <button onclick="editar(${i})">Editar</button>
+            <button onclick="eliminar(${i})">Eliminar</button>
+          </td>
+        </tr>`;
+      });
+    }
+
+    function editar(i) {
+      const inc = incidents[i];
+      document.getElementById('movil').value = inc.movil;
+      document.getElementById('fecha').value = inc.fecha;
+      document.getElementById('hora').value = inc.hora;
+      document.getElementById('lugar').value = inc.lugar;
+      document.getElementById('tipo').value = inc.tipo;
+      document.getElementById('descripcion').value = inc.descripcion;
+      document.getElementById('encargado').value = inc.encargado;
+      document.getElementById('solicitante').value = inc.solicitante || '';
+      document.getElementById('estado').value = inc.estado;
+      editingIndex = i;
+    }
+
+    function eliminar(i) {
+      if (confirm('¿Estás seguro de eliminar este incidente?')) {
+        incidents.splice(i, 1);
+        localStorage.setItem('incidents', JSON.stringify(incidents));
+        mostrarTabla();
+        renderGraficos();
+      }
+    }
+
+    function toggleTabla() {
+      const tabla = document.getElementById('tabla');
+      tabla.classList.toggle('hidden');
+    }
+
+    function descargarDatos() {
+      const blob = new Blob([JSON.stringify(incidents, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'incidentes.json';
+      a.click();
+    }
+
+    function renderGraficos() {
+      const ctxs = ['grafico1','grafico2','grafico3','grafico4','grafico5'].map(id => document.getElementById(id).getContext('2d'));
+      ctxs.forEach(ctx => ctx.canvas.getContext('2d').clearRect(0, 0, ctx.canvas.width, ctx.canvas.height));
+
+      const tipos = {};
+      incidents.forEach(i => tipos[i.tipo] = (tipos[i.tipo] || 0) + 1);
+      new Chart(ctxs[0], {
+        type: 'bar',
+        data: { labels: Object.keys(tipos), datasets: [{ label: 'Tipos de Incidentes', data: Object.values(tipos), backgroundColor: 'orange' }] }
+      });
+
+      const estados = { abierto: 0, finalizado: 0 };
+      incidents.forEach(i => estados[i.estado]++);
+      new Chart(ctxs[1], {
+        type: 'pie',
+        data: { labels: Object.keys(estados), datasets: [{ label: 'Estados', data: Object.values(estados), backgroundColor: ['green','gray'] }] }
+      });
+
+      const lugares = {};
+      incidents.forEach(i => lugares[i.lugar] = (lugares[i.lugar] || 0) + 1);
+      new Chart(ctxs[2], {
+        type: 'doughnut',
+        data: { labels: Object.keys(lugares), datasets: [{ label: 'Lugares', data: Object.values(lugares), backgroundColor: ['purple','blue','red','yellow'] }] }
+      });
+
+      const porHora = {};
+      incidents.forEach(i => porHora[i.hora] = (porHora[i.hora] || 0) + 1);
+      new Chart(ctxs[3], {
+        type: 'line',
+        data: { labels: Object.keys(porHora), datasets: [{ label: 'Incidentes por hora', data: Object.values(porHora), borderColor: 'black', fill: false }] }
+      });
+
+      const porSolicitante = {};
+      incidents.forEach(i => {
+        const s = i.solicitante || 'No especificado';
+        porSolicitante[s] = (porSolicitante[s] || 0) + 1;
+      });
+      new Chart(ctxs[4], {
+        type: 'bar',
+        data: { labels: Object.keys(porSolicitante), datasets: [{ label: 'Solicitantes', data: Object.values(porSolicitante), backgroundColor: 'teal' }] }
+      });
+    }
+
+    mostrarTabla();
+    renderGraficos();
+  </script>
+</body>
+</html>
