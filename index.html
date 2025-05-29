@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -140,14 +140,28 @@
       const fechaClave = incidente.fecha;
       const editKey = form.editKey.value;
 
-      if (editKey === '') {
-        db.ref('incidentes/' + fechaClave).push(incidente);
-      } else {
-        db.ref(`incidentes/${fechaClave}/${editKey}`).set(incidente);
+      if (!fechaClave) {
+        alert('Debes ingresar una fecha para guardar el incidente.');
+        return;
       }
 
-      form.reset();
-      form.editKey.value = '';
+      if (editKey === '') {
+        db.ref('incidentes/' + fechaClave).push(incidente)
+          .then(() => {
+            alert('Incidente guardado exitosamente.');
+            form.reset();
+            form.editKey.value = '';
+          })
+          .catch(error => alert("Error al guardar: " + error.message));
+      } else {
+        db.ref(`incidentes/${fechaClave}/${editKey}`).set(incidente)
+          .then(() => {
+            alert('Incidente actualizado correctamente.');
+            form.reset();
+            form.editKey.value = '';
+          })
+          .catch(error => alert("Error al actualizar: " + error.message));
+      }
     });
 
     function actualizarTabla() {
@@ -295,7 +309,6 @@
       });
     }
 
-    // Carga inicial
     const hoy = new Date().toISOString().split('T')[0];
     selectedDayInput.value = hoy;
     cargarIncidentesDelDia(hoy);
