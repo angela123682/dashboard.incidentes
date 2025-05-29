@@ -4,13 +4,17 @@
   <meta charset="UTF-8" />
   <title>Dashboard de Incidentes con Firebase</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase App (el núcleo SDK) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <!-- Firebase Realtime Database -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
   <style>
-    /* ... mismo CSS que antes ... */
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1, h2 { color: #333; }
+    form, .chart-container, .search-bar, .day-controls { margin-top: 20px; }
+    input, select, textarea { display: block; margin: 5px 0; padding: 5px; width: 100%; max-width: 400px; }
+    button { margin-top: 10px; padding: 8px 16px; }
+    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    .chart-container { max-width: 600px; margin: auto; }
   </style>
 </head>
 <body>
@@ -40,6 +44,13 @@
     <button type="submit">Guardar Incidente</button>
   </form>
 
+  <div class="day-controls">
+    <h2>Gestión por Día</h2>
+    <input type="date" id="selectedDay" />
+    <button id="viewDayBtn">Ver Día</button>
+    <select id="diasDisponibles"></select>
+  </div>
+
   <table id="incidentTable">
     <thead>
       <tr>
@@ -64,7 +75,6 @@
   <div class="chart-container"><canvas id="tiposRadarChart"></canvas></div>
 
   <script>
-    // Tu configuración Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyApDgOD-gYbfWxVXLrk83xRAtfoUKsZPq0",
       authDomain: "dashboard-incidentes.firebaseapp.com",
@@ -76,7 +86,6 @@
       measurementId: "G-3H40X60VBM"
     };
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -84,19 +93,35 @@
     const tbody = document.querySelector('#incidentTable tbody');
     const searchInput = document.getElementById('searchInput');
     const toggleDataBtn = document.getElementById('toggleDataBtn');
-    let mostrarDatos = true;
+    const selectedDayInput = document.getElementById('selectedDay');
+    const viewDayBtn = document.getElementById('viewDayBtn');
+    const diasDisponibles = document.getElementById('diasDisponibles');
 
-    // Escuchar datos de Firebase
-    function cargarIncidentes() {
-      db.ref('incidentes').on('value', (snapshot) => {
+    let mostrarDatos = true;
+    let incidentes = [];
+    let diaSeleccionado = '';
+
+    function cargarIncidentesDelDia(fecha) {
+      db.ref('incidentes/' + fecha).on('value', snapshot => {
         const data = snapshot.val() || {};
         incidentes = Object.entries(data).map(([key, val]) => ({ key, ...val }));
+        diaSeleccionado = fecha;
         actualizarTabla();
         actualizarGraficas();
       });
     }
 
-    // Guardar o editar incidente
+    function cargarDiasDisponibles() {
+      db.ref('incidentes').once('value', snapshot => {
+        const dias = Object.keys(snapshot.val() || {});
+        diasDisponibles.innerHTML = dias.map(d => `<option value="${d}">${d}</option>`).join('');
+        diasDisponibles.addEventListener('change', () => {
+          selectedDayInput.value = diasDisponibles.value;
+          cargarIncidentesDelDia(diasDisponibles.value);
+        });
+      });
+    }
+
     form.addEventListener('submit', e => {
       e.preventDefault();
 
@@ -112,22 +137,18 @@
         estado: form.estado.value || 'Abierto'
       };
 
+      const fechaClave = incidente.fecha;
       const editKey = form.editKey.value;
 
       if (editKey === '') {
-        // Nuevo incidente, push
-        const newRef = db.ref('incidentes').push();
-        newRef.set(incidente);
+        db.ref('incidentes/' + fechaClave).push(incidente);
       } else {
-        // Editar existente
-        db.ref(`incidentes/${editKey}`).set(incidente);
+        db.ref(`incidentes/${fechaClave}/${editKey}`).set(incidente);
       }
 
       form.reset();
       form.editKey.value = '';
     });
-
-    let incidentes = [];
 
     function actualizarTabla() {
       tbody.innerHTML = '';
@@ -149,9 +170,7 @@
           <td>${inc.descripcion}</td>
           <td>${inc.encargado}</td>
           <td>${inc.estado}</td>
-          <td>
-            <button class="btn-delete" onclick="eliminarIncidente('${key}')">Eliminar</button>
-          </td>
+          <td><button onclick="eliminarIncidente('${key}')">Eliminar</button></td>
         `;
         tr.addEventListener('click', e => {
           if (e.target.tagName !== 'BUTTON') editarIncidente(key);
@@ -166,7 +185,7 @@
 
       form.solicitante.value = inc.solicitante;
       form.movil.value = inc.movil;
-      form.fecha.value = inc.fecha;
+      form.fecha.value = diaSeleccionado;
       form.hora.value = inc.hora;
       form.lugar.value = inc.lugar;
       form.tipo.value = inc.tipo;
@@ -178,20 +197,23 @@
     }
 
     function eliminarIncidente(key) {
-      if (confirm('¿Estás seguro de que deseas eliminar este incidente?')) {
-        db.ref(`incidentes/${key}`).remove();
+      if (confirm('¿Eliminar este incidente?')) {
+        db.ref(`incidentes/${diaSeleccionado}/${key}`).remove();
       }
     }
 
     searchInput.addEventListener('input', actualizarTabla);
-
     toggleDataBtn.addEventListener('click', () => {
       mostrarDatos = !mostrarDatos;
       toggleDataBtn.textContent = mostrarDatos ? 'Ocultar Datos' : 'Mostrar Datos';
       actualizarTabla();
     });
 
-    // Gráficas con Chart.js
+    viewDayBtn.addEventListener('click', () => {
+      const fecha = selectedDayInput.value;
+      if (fecha) cargarIncidentesDelDia(fecha);
+    });
+
     let barChart, pieChart, estadoLineaChart, tiposRadarChart;
 
     function actualizarGraficas() {
@@ -227,15 +249,7 @@
             backgroundColor: 'rgba(0,123,255,0.6)'
           }]
         },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Tipos de Incidente'
-            }
-          }
-        }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Tipos de Incidente' } } }
       });
 
       pieChart = new Chart(document.getElementById('pieChart'), {
@@ -247,15 +261,7 @@
             backgroundColor: ['#28a745', '#dc3545']
           }]
         },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Estado de los Incidentes'
-            }
-          }
-        }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Estado de los Incidentes' } } }
       });
 
       estadoLineaChart = new Chart(document.getElementById('estadoLineaChart'), {
@@ -270,15 +276,7 @@
             tension: 0.1
           }]
         },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Tendencia de Incidentes por Fecha'
-            }
-          }
-        }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Tendencia por Fecha' } } }
       });
 
       tiposRadarChart = new Chart(document.getElementById('tiposRadarChart'), {
@@ -293,20 +291,15 @@
             pointBackgroundColor: '#007BFF'
           }]
         },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Distribución de Tipos (Radar)'
-            }
-          }
-        }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Distribución de Tipos' } } }
       });
     }
 
     // Carga inicial
-    cargarIncidentes();
+    const hoy = new Date().toISOString().split('T')[0];
+    selectedDayInput.value = hoy;
+    cargarIncidentesDelDia(hoy);
+    cargarDiasDisponibles();
   </script>
 </body>
 </html>
