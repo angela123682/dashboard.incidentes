@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+ <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -51,6 +52,8 @@
     <select id="diasDisponibles"></select>
   </div>
 
+  <button id="verGraficoMesBtn">Ver Gráfico por Mes</button>
+
   <table id="incidentTable">
     <thead>
       <tr>
@@ -73,6 +76,7 @@
   <div class="chart-container"><canvas id="pieChart"></canvas></div>
   <div class="chart-container"><canvas id="estadoLineaChart"></canvas></div>
   <div class="chart-container"><canvas id="tiposRadarChart"></canvas></div>
+  <div class="chart-container"><canvas id="monthlyBarChart"></canvas></div>
 
   <script>
     const firebaseConfig = {
@@ -96,6 +100,7 @@
     const selectedDayInput = document.getElementById('selectedDay');
     const viewDayBtn = document.getElementById('viewDayBtn');
     const diasDisponibles = document.getElementById('diasDisponibles');
+    const verGraficoMesBtn = document.getElementById('verGraficoMesBtn');
 
     let mostrarDatos = true;
     let incidentes = [];
@@ -228,7 +233,7 @@
       if (fecha) cargarIncidentesDelDia(fecha);
     });
 
-    let barChart, pieChart, estadoLineaChart, tiposRadarChart;
+    let barChart, pieChart, estadoLineaChart, tiposRadarChart, monthlyBarChart;
 
     function actualizarGraficas() {
       const tipos = {};
@@ -309,6 +314,47 @@
       });
     }
 
+    verGraficoMesBtn.addEventListener('click', mostrarGraficoMensual);
+
+    function mostrarGraficoMensual() {
+      db.ref('incidentes').once('value', snapshot => {
+        const data = snapshot.val() || {};
+        const conteoPorMes = {};
+
+        Object.entries(data).forEach(([fechaStr, registros]) => {
+          const mes = fechaStr.slice(0, 7); // yyyy-mm
+          const cantidad = Object.keys(registros).length;
+          conteoPorMes[mes] = (conteoPorMes[mes] || 0) + cantidad;
+        });
+
+        const meses = Object.keys(conteoPorMes).sort();
+        const valores = meses.map(m => conteoPorMes[m]);
+
+        if (monthlyBarChart) monthlyBarChart.destroy();
+
+        monthlyBarChart = new Chart(document.getElementById('monthlyBarChart'), {
+          type: 'bar',
+          data: {
+            labels: meses,
+            datasets: [{
+              label: 'Incidentes por Mes',
+              data: valores,
+              backgroundColor: 'rgba(255, 99, 132, 0.6)'
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: 'Total de Incidentes por Mes'
+              }
+            }
+          }
+        });
+      });
+    }
+
     const hoy = new Date().toISOString().split('T')[0];
     selectedDayInput.value = hoy;
     cargarIncidentesDelDia(hoy);
@@ -316,3 +362,4 @@
   </script>
 </body>
 </html>
+
