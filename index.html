@@ -54,7 +54,7 @@
     }
 
     /* Estilo para logo */
-    .logo-izquierdo {
+    .logo-derecho {
       position: fixed;
       top: 20px;
       left: 20px;
@@ -66,18 +66,31 @@
 </head>
 <body>
 
-  <!-- Logo en el costado izquierdo -->
-  <img class="logo-izquierdo" src="https://www.hora7.cl/wp-content/uploads/2020/07/107052641_380519119593179_8501973165097890308_n-300x300.jpg" alt="Logo Seguridad Linares" />
+ <head>
+  ...
+  <style>
+    ...
+    .logo-derecho {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 150px;
+      z-index: 1000;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
 
+  <img
+    class="logo-derecho"
+    src="https://www.hora7.cl/wp-content/uploads/2020/07/107052641_380519119593179_8501973165097890308_n-300x300.jpg"
+    alt="Logo Seguridad Linares"
+  >
+  
   <!-- Modal login -->
-  <div id="loginModal">
-    <div id="loginBox">
-      <h2>Ingrese la contraseña</h2>
-      <input type="password" id="passwordInput" placeholder="Contraseña" />
-      <button id="loginBtn">Entrar</button>
-      <div id="loginError">Contraseña incorrecta</div>
-    </div>
-  </div>
+  <div id="loginModal">...</div>
+
 
 
   <div id="mainContent" style="display:none;">
