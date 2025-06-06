@@ -52,9 +52,22 @@
       font-weight: bold;
       display: none;
     }
+
+    /* Estilo para logo */
+    .logo-izquierdo {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 80px;
+      z-index: 10000;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Logo en el costado izquierdo -->
+  <img class="logo-izquierdo" src="https://www.hora7.cl/wp-content/uploads/2020/07/107052641_380519119593179_8501973165097890308_n-300x300.jpg" alt="Logo Seguridad Linares" />
 
   <!-- Modal login -->
   <div id="loginModal">
@@ -65,6 +78,7 @@
       <div id="loginError">Contraseña incorrecta</div>
     </div>
   </div>
+
 
   <div id="mainContent" style="display:none;">
     <h1>Dashboard de Incidentes</h1>
