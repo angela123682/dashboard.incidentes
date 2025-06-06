@@ -1,5 +1,4 @@
-
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -16,350 +15,423 @@
     table { width: 100%; margin-top: 20px; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     .chart-container { max-width: 600px; margin: auto; }
+
+    /* Modal de login */
+    #loginModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #loginBox {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 300px;
+      width: 90%;
+    }
+    #loginBox input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    #loginBox button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #loginError {
+      color: red;
+      margin-top: 10px;
+      font-weight: bold;
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Dashboard de Incidentes</h1>
-
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="Buscar por cualquier campo..." />
-    <button id="toggleDataBtn">Ocultar Datos</button>
+  <!-- Modal login -->
+  <div id="loginModal">
+    <div id="loginBox">
+      <h2>Ingrese la contraseña</h2>
+      <input type="password" id="passwordInput" placeholder="Contraseña" />
+      <button id="loginBtn">Entrar</button>
+      <div id="loginError">Contraseña incorrecta</div>
+    </div>
   </div>
 
-  <form id="incidentForm">
-    <h2>Agregar o Editar Incidente</h2>
-    <input type="hidden" id="editKey" value="" />
-    <input type="text" id="solicitante" placeholder="Solicitante" />
-    <input type="text" id="movil" placeholder="Móvil" />
-    <input type="date" id="fecha" />
-    <input type="time" id="hora" />
-    <input type="text" id="lugar" placeholder="Lugar" />
-    <input type="text" id="tipo" placeholder="Tipo de Incidente" />
-    <textarea id="descripcion" placeholder="Descripción"></textarea>
-    <input type="text" id="encargado" placeholder="Encargado" />
-    <select id="estado">
-      <option value="Abierto">Abierto</option>
-      <option value="Cerrado">Cerrado</option>
-    </select>
-    <button type="submit">Guardar Incidente</button>
-  </form>
+  <div id="mainContent" style="display:none;">
+    <h1>Dashboard de Incidentes</h1>
 
-  <div class="day-controls">
-    <h2>Gestión por Día</h2>
-    <input type="date" id="selectedDay" />
-    <button id="viewDayBtn">Ver Día</button>
-    <select id="diasDisponibles"></select>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar por cualquier campo..." />
+      <button id="toggleDataBtn">Ocultar Datos</button>
+    </div>
+
+    <form id="incidentForm">
+      <h2>Agregar o Editar Incidente</h2>
+      <input type="hidden" id="editKey" value="" />
+      <input type="text" id="solicitante" placeholder="Solicitante" />
+      <input type="text" id="movil" placeholder="Móvil" />
+      <input type="date" id="fecha" />
+      <input type="time" id="hora" />
+      <input type="text" id="lugar" placeholder="Lugar" />
+      <input type="text" id="tipo" placeholder="Tipo de Incidente" />
+      <textarea id="descripcion" placeholder="Descripción"></textarea>
+      <input type="text" id="encargado" placeholder="Encargado" />
+      <select id="estado">
+        <option value="Abierto">Abierto</option>
+        <option value="Cerrado">Cerrado</option>
+      </select>
+      <button type="submit">Guardar Incidente</button>
+    </form>
+
+    <div class="day-controls">
+      <h2>Gestión por Día</h2>
+      <input type="date" id="selectedDay" />
+      <button id="viewDayBtn">Ver Día</button>
+      <select id="diasDisponibles"></select>
+    </div>
+
+    <button id="verGraficoMesBtn">Ver Gráfico por Mes</button>
+
+    <table id="incidentTable">
+      <thead>
+        <tr>
+          <th>Solicitante</th>
+          <th>Móvil</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Lugar</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+          <th>Encargado</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="chart-container"><canvas id="barChart"></canvas></div>
+    <div class="chart-container"><canvas id="pieChart"></canvas></div>
+    <div class="chart-container"><canvas id="estadoLineaChart"></canvas></div>
+    <div class="chart-container"><canvas id="tiposRadarChart"></canvas></div>
+    <div class="chart-container"><canvas id="monthlyBarChart"></canvas></div>
   </div>
-
-  <button id="verGraficoMesBtn">Ver Gráfico por Mes</button>
-
-  <table id="incidentTable">
-    <thead>
-      <tr>
-        <th>Solicitante</th>
-        <th>Móvil</th>
-        <th>Fecha</th>
-        <th>Hora</th>
-        <th>Lugar</th>
-        <th>Tipo</th>
-        <th>Descripción</th>
-        <th>Encargado</th>
-        <th>Estado</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <div class="chart-container"><canvas id="barChart"></canvas></div>
-  <div class="chart-container"><canvas id="pieChart"></canvas></div>
-  <div class="chart-container"><canvas id="estadoLineaChart"></canvas></div>
-  <div class="chart-container"><canvas id="tiposRadarChart"></canvas></div>
-  <div class="chart-container"><canvas id="monthlyBarChart"></canvas></div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyApDgOD-gYbfWxVXLrk83xRAtfoUKsZPq0",
-      authDomain: "dashboard-incidentes.firebaseapp.com",
-      databaseURL: "https://dashboard-incidentes-default-rtdb.firebaseio.com",
-      projectId: "dashboard-incidentes",
-      storageBucket: "dashboard-incidentes.firebasestorage.app",
-      messagingSenderId: "455213582141",
-      appId: "1:455213582141:web:27156a287797abf490e754",
-      measurementId: "G-3H40X60VBM"
-    };
+    // Clave fija para el acceso
+    const PASSWORD = "admin123";
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const loginModal = document.getElementById('loginModal');
+    const loginBtn = document.getElementById('loginBtn');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginError = document.getElementById('loginError');
+    const mainContent = document.getElementById('mainContent');
 
-    const form = document.getElementById('incidentForm');
-    const tbody = document.querySelector('#incidentTable tbody');
-    const searchInput = document.getElementById('searchInput');
-    const toggleDataBtn = document.getElementById('toggleDataBtn');
-    const selectedDayInput = document.getElementById('selectedDay');
-    const viewDayBtn = document.getElementById('viewDayBtn');
-    const diasDisponibles = document.getElementById('diasDisponibles');
-    const verGraficoMesBtn = document.getElementById('verGraficoMesBtn');
+    loginBtn.addEventListener('click', () => {
+      const pass = passwordInput.value;
+      if (pass === PASSWORD) {
+        loginModal.style.display = 'none';
+        mainContent.style.display = 'block';
+        initApp();
+      } else {
+        loginError.style.display = 'block';
+      }
+    });
 
-    let mostrarDatos = true;
-    let incidentes = [];
-    let diaSeleccionado = '';
+    passwordInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') loginBtn.click();
+    });
 
-    function cargarIncidentesDelDia(fecha) {
-      db.ref('incidentes/' + fecha).on('value', snapshot => {
-        const data = snapshot.val() || {};
-        incidentes = Object.entries(data).map(([key, val]) => ({ key, ...val }));
-        diaSeleccionado = fecha;
-        actualizarTabla();
-        actualizarGraficas();
-      });
-    }
+    // Función principal que inicializa el resto del código
+    function initApp() {
+      // --- Aquí va TODO el código original del script, movido dentro de initApp para que corra solo tras login ---
 
-    function cargarDiasDisponibles() {
-      db.ref('incidentes').once('value', snapshot => {
-        const dias = Object.keys(snapshot.val() || {});
-        diasDisponibles.innerHTML = dias.map(d => `<option value="${d}">${d}</option>`).join('');
-        diasDisponibles.addEventListener('change', () => {
-          selectedDayInput.value = diasDisponibles.value;
-          cargarIncidentesDelDia(diasDisponibles.value);
-        });
-      });
-    }
-
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-
-      const incidente = {
-        solicitante: form.solicitante.value || '',
-        movil: form.movil.value || '',
-        fecha: form.fecha.value || '',
-        hora: form.hora.value || '',
-        lugar: form.lugar.value || '',
-        tipo: form.tipo.value || '',
-        descripcion: form.descripcion.value || '',
-        encargado: form.encargado.value || '',
-        estado: form.estado.value || 'Abierto'
+      const firebaseConfig = {
+        apiKey: "AIzaSyApDgOD-gYbfWxVXLrk83xRAtfoUKsZPq0",
+        authDomain: "dashboard-incidentes.firebaseapp.com",
+        databaseURL: "https://dashboard-incidentes-default-rtdb.firebaseio.com",
+        projectId: "dashboard-incidentes",
+        storageBucket: "dashboard-incidentes.firebasestorage.app",
+        messagingSenderId: "455213582141",
+        appId: "1:455213582141:web:27156a287797abf490e754",
+        measurementId: "G-3H40X60VBM"
       };
 
-      const fechaClave = incidente.fecha;
-      const editKey = form.editKey.value;
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
 
-      if (!fechaClave) {
-        alert('Debes ingresar una fecha para guardar el incidente.');
-        return;
-      }
+      const form = document.getElementById('incidentForm');
+      const tbody = document.querySelector('#incidentTable tbody');
+      const searchInput = document.getElementById('searchInput');
+      const toggleDataBtn = document.getElementById('toggleDataBtn');
+      const selectedDayInput = document.getElementById('selectedDay');
+      const viewDayBtn = document.getElementById('viewDayBtn');
+      const diasDisponibles = document.getElementById('diasDisponibles');
+      const verGraficoMesBtn = document.getElementById('verGraficoMesBtn');
 
-      if (editKey === '') {
-        db.ref('incidentes/' + fechaClave).push(incidente)
-          .then(() => {
-            alert('Incidente guardado exitosamente.');
-            form.reset();
-            form.editKey.value = '';
-          })
-          .catch(error => alert("Error al guardar: " + error.message));
-      } else {
-        db.ref(`incidentes/${fechaClave}/${editKey}`).set(incidente)
-          .then(() => {
-            alert('Incidente actualizado correctamente.');
-            form.reset();
-            form.editKey.value = '';
-          })
-          .catch(error => alert("Error al actualizar: " + error.message));
-      }
-    });
+      let mostrarDatos = true;
+      let incidentes = [];
+      let diaSeleccionado = '';
 
-    function actualizarTabla() {
-      tbody.innerHTML = '';
-      if (!mostrarDatos) return;
-
-      const filtro = searchInput.value.toLowerCase();
-      incidentes.forEach(({ key, ...inc }) => {
-        const filaTexto = Object.values(inc).join(' ').toLowerCase();
-        if (!filaTexto.includes(filtro)) return;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${inc.solicitante}</td>
-          <td>${inc.movil}</td>
-          <td>${inc.fecha}</td>
-          <td>${inc.hora}</td>
-          <td>${inc.lugar}</td>
-          <td>${inc.tipo}</td>
-          <td>${inc.descripcion}</td>
-          <td>${inc.encargado}</td>
-          <td>${inc.estado}</td>
-          <td><button onclick="eliminarIncidente('${key}')">Eliminar</button></td>
-        `;
-        tr.addEventListener('click', e => {
-          if (e.target.tagName !== 'BUTTON') editarIncidente(key);
+      function cargarIncidentesDelDia(fecha) {
+        db.ref('incidentes/' + fecha).on('value', snapshot => {
+          const data = snapshot.val() || {};
+          incidentes = Object.entries(data).map(([key, val]) => ({ key, ...val }));
+          diaSeleccionado = fecha;
+          actualizarTabla();
+          actualizarGraficas();
         });
-        tbody.appendChild(tr);
-      });
-    }
-
-    function editarIncidente(key) {
-      const inc = incidentes.find(i => i.key === key);
-      if (!inc) return;
-
-      form.solicitante.value = inc.solicitante;
-      form.movil.value = inc.movil;
-      form.fecha.value = diaSeleccionado;
-      form.hora.value = inc.hora;
-      form.lugar.value = inc.lugar;
-      form.tipo.value = inc.tipo;
-      form.descripcion.value = inc.descripcion;
-      form.encargado.value = inc.encargado;
-      form.estado.value = inc.estado;
-      form.editKey.value = key;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function eliminarIncidente(key) {
-      if (confirm('¿Eliminar este incidente?')) {
-        db.ref(`incidentes/${diaSeleccionado}/${key}`).remove();
       }
-    }
 
-    searchInput.addEventListener('input', actualizarTabla);
-    toggleDataBtn.addEventListener('click', () => {
-      mostrarDatos = !mostrarDatos;
-      toggleDataBtn.textContent = mostrarDatos ? 'Ocultar Datos' : 'Mostrar Datos';
-      actualizarTabla();
-    });
+      function cargarDiasDisponibles() {
+        db.ref('incidentes').once('value', snapshot => {
+          const dias = Object.keys(snapshot.val() || {});
+          diasDisponibles.innerHTML = dias.map(d => `<option value="${d}">${d}</option>`).join('');
+          diasDisponibles.addEventListener('change', () => {
+            selectedDayInput.value = diasDisponibles.value;
+            cargarIncidentesDelDia(diasDisponibles.value);
+          });
+        });
+      }
 
-    viewDayBtn.addEventListener('click', () => {
-      const fecha = selectedDayInput.value;
-      if (fecha) cargarIncidentesDelDia(fecha);
-    });
+      form.addEventListener('submit', e => {
+        e.preventDefault();
 
-    let barChart, pieChart, estadoLineaChart, tiposRadarChart, monthlyBarChart;
+        const incidente = {
+          solicitante: form.solicitante.value || '',
+          movil: form.movil.value || '',
+          fecha: form.fecha.value || '',
+          hora: form.hora.value || '',
+          lugar: form.lugar.value || '',
+          tipo: form.tipo.value || '',
+          descripcion: form.descripcion.value || '',
+          encargado: form.encargado.value || '',
+          estado: form.estado.value || 'Abierto'
+        };
 
-    function actualizarGraficas() {
-      const tipos = {};
-      const estados = { Abierto: 0, Cerrado: 0 };
-      const fechas = {};
+        const fechaClave = incidente.fecha;
+        const editKey = form.editKey.value;
 
-      incidentes.forEach(i => {
-        tipos[i.tipo] = (tipos[i.tipo] || 0) + 1;
-        estados[i.estado] = (estados[i.estado] || 0) + 1;
-        fechas[i.fecha] = (fechas[i.fecha] || 0) + 1;
+        if (!fechaClave) {
+          alert('Debes ingresar una fecha para guardar el incidente.');
+          return;
+        }
+
+        if (editKey === '') {
+          db.ref('incidentes/' + fechaClave).push(incidente)
+            .then(() => {
+              alert('Incidente guardado exitosamente.');
+              form.reset();
+              form.editKey.value = '';
+            })
+            .catch(error => alert("Error al guardar: " + error.message));
+        } else {
+          db.ref(`incidentes/${fechaClave}/${editKey}`).set(incidente)
+            .then(() => {
+              alert('Incidente actualizado correctamente.');
+              form.reset();
+              form.editKey.value = '';
+            })
+            .catch(error => alert("Error al actualizar: " + error.message));
+        }
       });
 
-      const tipoLabels = Object.keys(tipos);
-      const tipoData = Object.values(tipos);
-      const estadoLabels = Object.keys(estados);
-      const estadoData = Object.values(estados);
-      const fechaLabels = Object.keys(fechas).sort();
-      const fechaData = fechaLabels.map(f => fechas[f]);
+      function actualizarTabla() {
+        tbody.innerHTML = '';
+        if (!mostrarDatos) return;
 
-      if (barChart) barChart.destroy();
-      if (pieChart) pieChart.destroy();
-      if (estadoLineaChart) estadoLineaChart.destroy();
-      if (tiposRadarChart) tiposRadarChart.destroy();
+        const filtro = searchInput.value.toLowerCase();
+        incidentes.forEach(({ key, ...inc }) => {
+          const filaTexto = Object.values(inc).join(' ').toLowerCase();
+          if (!filaTexto.includes(filtro)) return;
 
-      barChart = new Chart(document.getElementById('barChart'), {
-        type: 'bar',
-        data: {
-          labels: tipoLabels,
-          datasets: [{
-            label: 'Incidentes por Tipo',
-            data: tipoData,
-            backgroundColor: 'rgba(0,123,255,0.6)'
-          }]
-        },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Tipos de Incidente' } } }
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${inc.solicitante}</td>
+            <td>${inc.movil}</td>
+            <td>${inc.fecha}</td>
+            <td>${inc.hora}</td>
+            <td>${inc.lugar}</td>
+            <td>${inc.tipo}</td>
+            <td>${inc.descripcion}</td>
+            <td>${inc.encargado}</td>
+            <td>${inc.estado}</td>
+            <td><button onclick="eliminarIncidente('${key}')">Eliminar</button></td>
+          `;
+          tr.addEventListener('click', e => {
+            if (e.target.tagName !== 'BUTTON') editarIncidente(key);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      window.eliminarIncidente = function(key) {
+        if (confirm('¿Eliminar este incidente?')) {
+          db.ref(`incidentes/${diaSeleccionado}/${key}`).remove();
+        }
+      };
+
+      function editarIncidente(key) {
+        const inc = incidentes.find(i => i.key === key);
+        if (!inc) return;
+
+        form.solicitante.value = inc.solicitante;
+        form.movil.value = inc.movil;
+        form.fecha.value = diaSeleccionado;
+        form.hora.value = inc.hora;
+        form.lugar.value = inc.lugar;
+        form.tipo.value = inc.tipo;
+        form.descripcion.value = inc.descripcion;
+        form.encargado.value = inc.encargado;
+        form.estado.value = inc.estado;
+        form.editKey.value = key;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      searchInput.addEventListener('input', actualizarTabla);
+      toggleDataBtn.addEventListener('click', () => {
+        mostrarDatos = !mostrarDatos;
+        toggleDataBtn.textContent = mostrarDatos ? 'Ocultar Datos' : 'Mostrar Datos';
+        actualizarTabla();
       });
 
-      pieChart = new Chart(document.getElementById('pieChart'), {
-        type: 'pie',
-        data: {
-          labels: estadoLabels,
-          datasets: [{
-            data: estadoData,
-            backgroundColor: ['#28a745', '#dc3545']
-          }]
-        },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Estado de los Incidentes' } } }
+      viewDayBtn.addEventListener('click', () => {
+        const fecha = selectedDayInput.value;
+        if (fecha) cargarIncidentesDelDia(fecha);
       });
 
-      estadoLineaChart = new Chart(document.getElementById('estadoLineaChart'), {
-        type: 'line',
-        data: {
-          labels: fechaLabels,
-          datasets: [{
-            label: 'Incidentes por Fecha',
-            data: fechaData,
-            fill: false,
-            borderColor: '#007BFF',
-            tension: 0.1
-          }]
-        },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Tendencia por Fecha' } } }
-      });
+      let barChart, pieChart, estadoLineaChart, tiposRadarChart, monthlyBarChart;
 
-      tiposRadarChart = new Chart(document.getElementById('tiposRadarChart'), {
-        type: 'radar',
-        data: {
-          labels: tipoLabels,
-          datasets: [{
-            label: 'Frecuencia por Tipo',
-            data: tipoData,
-            backgroundColor: 'rgba(0,123,255,0.2)',
-            borderColor: '#007BFF',
-            pointBackgroundColor: '#007BFF'
-          }]
-        },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Distribución de Tipos' } } }
-      });
-    }
+      function actualizarGraficas() {
+        const tipos = {};
+        const estados = { Abierto: 0, Cerrado: 0 };
+        const fechas = {};
 
-    verGraficoMesBtn.addEventListener('click', mostrarGraficoMensual);
-
-    function mostrarGraficoMensual() {
-      db.ref('incidentes').once('value', snapshot => {
-        const data = snapshot.val() || {};
-        const conteoPorMes = {};
-
-        Object.entries(data).forEach(([fechaStr, registros]) => {
-          const mes = fechaStr.slice(0, 7); // yyyy-mm
-          const cantidad = Object.keys(registros).length;
-          conteoPorMes[mes] = (conteoPorMes[mes] || 0) + cantidad;
+        incidentes.forEach(i => {
+          tipos[i.tipo] = (tipos[i.tipo] || 0) + 1;
+          estados[i.estado] = (estados[i.estado] || 0) + 1;
+          fechas[i.fecha] = (fechas[i.fecha] || 0) + 1;
         });
 
-        const meses = Object.keys(conteoPorMes).sort();
-        const valores = meses.map(m => conteoPorMes[m]);
+        const tipoLabels = Object.keys(tipos);
+        const tipoData = Object.values(tipos);
+        const estadoLabels = Object.keys(estados);
+        const estadoData = Object.values(estados);
+        const fechaLabels = Object.keys(fechas).sort();
+        const fechaData = fechaLabels.map(f => fechas[f]);
 
-        if (monthlyBarChart) monthlyBarChart.destroy();
+        if (barChart) barChart.destroy();
+        if (pieChart) pieChart.destroy();
+        if (estadoLineaChart) estadoLineaChart.destroy();
+        if (tiposRadarChart) tiposRadarChart.destroy();
 
-        monthlyBarChart = new Chart(document.getElementById('monthlyBarChart'), {
+        barChart = new Chart(document.getElementById('barChart'), {
           type: 'bar',
           data: {
-            labels: meses,
+            labels: tipoLabels,
             datasets: [{
-              label: 'Incidentes por Mes',
-              data: valores,
-              backgroundColor: 'rgba(255, 99, 132, 0.6)'
+              label: 'Incidentes por Tipo',
+              data: tipoData,
+              backgroundColor: 'rgba(0,123,255,0.6)'
             }]
           },
-          options: {
-            responsive: true,
-            plugins: {
-              title: {
-                display: true,
-                text: 'Total de Incidentes por Mes'
-              }
-            }
-          }
+          options: { responsive: true, plugins: { title: { display: true, text: 'Tipos de Incidente' } } }
         });
-      });
-    }
 
-    const hoy = new Date().toISOString().split('T')[0];
-    selectedDayInput.value = hoy;
-    cargarIncidentesDelDia(hoy);
-    cargarDiasDisponibles();
+        pieChart = new Chart(document.getElementById('pieChart'), {
+          type: 'pie',
+          data: {
+            labels: estadoLabels,
+            datasets: [{
+              data: estadoData,
+              backgroundColor: ['#28a745', '#dc3545']
+            }]
+          },
+          options: { responsive: true, plugins: { title: { display: true, text: 'Estado de los Incidentes' } } }
+        });
+
+        estadoLineaChart = new Chart(document.getElementById('estadoLineaChart'), {
+          type: 'line',
+          data: {
+            labels: fechaLabels,
+            datasets: [{
+              label: 'Incidentes por Fecha',
+              data: fechaData,
+              fill: false,
+              borderColor: '#007BFF',
+              tension: 0.1
+            }]
+          },
+          options: { responsive: true, plugins: { title: { display: true, text: 'Tendencia por Fecha' } } }
+        });
+
+        tiposRadarChart = new Chart(document.getElementById('tiposRadarChart'), {
+          type: 'radar',
+          data: {
+            labels: tipoLabels,
+            datasets: [{
+              label: 'Frecuencia por Tipo',
+              data: tipoData,
+              backgroundColor: 'rgba(0,123,255,0.2)',
+              borderColor: '#007BFF',
+              pointBackgroundColor: '#007BFF'
+            }]
+          },
+          options: { responsive: true, plugins: { title: { display: true, text: 'Distribución de Tipos' } } }
+        });
+      }
+
+      verGraficoMesBtn.addEventListener('click', mostrarGraficoMensual);
+
+      function mostrarGraficoMensual() {
+        db.ref('incidentes').once('value', snapshot => {
+          const data = snapshot.val() || {};
+          const conteoPorMes = {};
+
+          Object.entries(data).forEach(([fechaStr, registros]) => {
+            const mes = fechaStr.slice(0, 7); // yyyy-mm
+            const cantidad = Object.keys(registros).length;
+            conteoPorMes[mes] = (conteoPorMes[mes] || 0) + cantidad;
+          });
+
+          const meses = Object.keys(conteoPorMes).sort();
+          const cantidades = meses.map(m => conteoPorMes[m]);
+
+          if (monthlyBarChart) monthlyBarChart.destroy();
+
+          monthlyBarChart = new Chart(document.getElementById('monthlyBarChart'), {
+            type: 'bar',
+            data: {
+              labels: meses,
+              datasets: [{
+                label: 'Incidentes por Mes',
+                data: cantidades,
+                backgroundColor: 'rgba(40, 167, 69, 0.7)'
+              }]
+            },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Incidentes Mensuales' } } }
+          });
+        });
+      }
+
+      // Carga inicial
+      const hoy = new Date().toISOString().slice(0,10);
+      selectedDayInput.value = hoy;
+      cargarIncidentesDelDia(hoy);
+      cargarDiasDisponibles();
+    }
   </script>
+
 </body>
 </html>
 
+ 
